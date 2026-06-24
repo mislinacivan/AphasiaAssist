@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#2e5a4e">
+  <title>AphasiaAssist AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] },
+          colors: {
+            cream: { DEFAULT: '#fbf9f4', dark: '#f5f0e8' },
+            sage: { DEFAULT: '#2e5a4e', light: '#ebf4f1', muted: '#4a7a6c' },
+            peach: { bg: '#fdf4ec', accent: '#c2410c', light: '#fde8d8' },
+            therapy: { bg: '#eef2ff', accent: '#1e40af' },
+            stone: { DEFAULT: '#272522', muted: '#5c5854', light: '#8a8580' }
+          },
+          boxShadow: {
+            sage: '0 10px 30px -10px rgba(46, 90, 78, 0.08)',
+            card: '0 4px 20px -4px rgba(39, 37, 34, 0.06)',
+            lift: '0 20px 40px -15px rgba(46, 90, 78, 0.12)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      color: #272522;
+      background: linear-gradient(165deg, #fbf9f4 0%, #f8f4ed 35%, #f5efe6 60%, #f0ebe3 100%);
+      min-height: 100vh;
+      min-height: 100dvh;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+    }
+    input, textarea { -webkit-user-select: text; user-select: text; }
+    .safe-top { padding-top: env(safe-area-inset-top, 0px); }
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+    .safe-x { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+    .shadow-sage { box-shadow: 0 10px 30px -10px rgba(46, 90, 78, 0.08); }
+    .shadow-card { box-shadow: 0 4px 20px -4px rgba(39, 37, 34, 0.06); }
+    @keyframes nod { 0%,100%{transform:rotate(0)} 25%{transform:rotate(12deg)} 75%{transform:rotate(-12deg)} }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+    @keyframes pulse-soft { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.85;transform:scale(1.03)} }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+    @keyframes mic-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(46,90,78,.3)} 50%{box-shadow:0 0 0 12px rgba(46,90,78,0)} }
+    .anim-nod { animation: nod 1.2s ease-in-out infinite; transform-origin: center bottom; }
+    .anim-shake { animation: shake .8s ease-in-out infinite; }
+    .anim-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
+    .anim-float { animation: float 3s ease-in-out infinite; }
+    .anim-mic { animation: mic-pulse 1.5s ease-in-out infinite; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .nav-btn.active { background: #2e5a4e; color: #fff; }
+    .cue-panel { max-height: 0; overflow: hidden; transition: max-height .35s ease, opacity .3s; opacity: 0; }
+    .cue-panel.open { max-height: 500px; opacity: 1; }
+    .svg-icon { transition: transform .2s ease, opacity .2s; }
+    .svg-icon:active { transform: scale(.92); }
+    button, .touch-target { touch-action: manipulation; min-height: 44px; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #2e5a4e33; border-radius: 4px; }
+  </style>
+</head>
+<body class="safe-x">
+  <div id="app" class="min-h-screen flex flex-col safe-top safe-bottom">
+    <header class="sticky top-0 z-50 bg-cream/80 backdrop-blur-xl border-b border-sage/10 shadow-sage safe-top">
+      <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-sage flex items-center justify-center shadow-sage">
+            <svg class="w-6 h-6 text-white svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a3 3 0 0 1 3 3v1a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 18v4"/><path d="M8 22h8"/></svg>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-stone leading-tight">AphasiaAssist AI</h1>
+            <p class="text-xs text-stone-muted">Dil & Konuşma Terapisi</p>
+          </div>
+        </div>
+        <button id="btnSettings" class="w-11 h-11 rounded-2xl bg-sage-light flex items-center justify-center shadow-card hover:bg-sage/10 transition-colors svg-icon" aria-label="Ayarlar">
+          <svg class="w-5 h-5 text-sage" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-4xl mx-auto w-full px-4 py-5 pb-28">
+      <!-- ANA SAYFA -->
+      <section id="sec-home" class="section active">
+        <div class="text-center mb-8 anim-float">
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sage-light text-sage text-sm font-medium mb-4">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Klinik Afazi Destek Sistemi
+          </div>
+          <h2 class="text-2xl md:text-3xl font-bold text-stone mb-2">Hoş Geldiniz</h2>
+          <p class="text-stone-muted text-sm md:text-base max-w-md mx-auto">Terapötik modüllerinizden birini seçerek seansınıza başlayın.</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button onclick="App.navigate('yesno')" class="group p-6 rounded-3xl bg-white shadow-sage border border-sage/5 text-left hover:shadow-lift transition-all duration-300">
+            <div class="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+              <svg class="w-8 h-8 text-green-600 svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <h3 class="font-bold text-lg text-stone mb-1">Evet / Hayır Antrenmanı</h3>
+            <p class="text-sm text-stone-muted">Görsel sorularla baş sallama ve jest kontrolü</p>
+          </button>
+          <button onclick="App.navigate('phoneme')" class="group p-6 rounded-3xl bg-white shadow-sage border border-sage/5 text-left hover:shadow-lift transition-all duration-300">
+            <div class="w-14 h-14 rounded-2xl bg-peach-bg flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+              <svg class="w-8 h-8 text-peach-accent svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </div>
+            <h3 class="font-bold text-lg text-stone mb-1">Ses & Hece Laboratuvarı</h3>
+            <p class="text-sm text-stone-muted">Temel sesler ve dudak sesleri üretimi</p>
+          </button>
+          <button onclick="App.navigate('wordfind')" class="group p-6 rounded-3xl bg-white shadow-sage border border-sage/5 text-left hover:shadow-lift transition-all duration-300 sm:col-span-2">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 rounded-2xl bg-therapy-bg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <svg class="w-8 h-8 text-therapy-accent svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M11 8v6M8 11h6"/></svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-lg text-stone mb-1">Kelime Bulma Rehabilitasyonu</h3>
+                <p class="text-sm text-stone-muted">Kademeli ipuçları ile anomik afazi desteği</p>
+              </div>
+            </div>
+          </button>
+        </div>
+        <div id="statusBar" class="mt-6 p-4 rounded-2xl bg-sage-light/60 border border-sage/10 flex items-center gap-3">
+          <div id="statusDot" class="w-3 h-3 rounded-full bg-sage shrink-0"></div>
+          <p id="statusText" class="text-sm text-stone-muted">Demo modu aktif — Ayarlardan Gemini API anahtarı ekleyebilirsiniz.</p>
+        </div>
+      </section>
+
+      <!-- EVET/HAYIR -->
+      <section id="sec-yesno" class="section">
+        <button onclick="App.navigate('home')" class="flex items-center gap-2 text-sage font-medium mb-4 touch-target">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Geri
+        </button>
+        <div class="text-center mb-6">
+          <span id="ynProgress" class="inline-block px-3 py-1 rounded-full bg-sage-light text-sage text-xs font-semibold mb-3">Soru 1 / 8</span>
+          <div id="ynImage" class="w-40 h-40 mx-auto rounded-3xl bg-white shadow-sage flex items-center justify-center mb-4 anim-pulse-soft"></div>
+          <h2 id="ynQuestion" class="text-xl md:text-2xl font-bold text-stone leading-snug px-2"></h2>
+          <button id="ynSpeakBtn" onclick="YesNo.speakQuestion()" class="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-therapy-bg text-therapy-accent text-sm font-medium shadow-card">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            Soruyu Dinle
+          </button>
+        </div>
+        <div class="grid grid-cols-2 gap-3 md:gap-4 max-w-lg mx-auto">
+          <button id="btnYes" onclick="YesNo.answer(true)" class="relative overflow-hidden p-5 md:p-6 rounded-3xl bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lift active:scale-[.97] transition-transform">
+            <div class="flex flex-col items-center gap-2">
+              <svg class="w-10 h-10 anim-nod" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="14" r="8" fill="white" opacity=".9"/><path d="M24 22c-6 0-10 3-10 8v2h20v-2c0-5-4-8-10-8z" fill="white" opacity=".9"/><path d="M24 8v-4" stroke="white" stroke-width="2" stroke-linecap="round" class="anim-nod" style="transform-origin:24px 8px"/></svg>
+              <span class="text-2xl md:text-3xl font-extrabold tracking-wide">EVET</span>
+              <span class="text-xs opacity-80">Başını yukarı-aşağı salla</span>
+            </div>
+          </button>
+          <button id="btnNo" onclick="YesNo.answer(false)" class="relative overflow-hidden p-5 md:p-6 rounded-3xl bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lift active:scale-[.97] transition-transform">
+            <div class="flex flex-col items-center gap-2">
+              <svg class="w-10 h-10 anim-shake" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="14" r="8" fill="white" opacity=".9"/><path d="M24 22c-6 0-10 3-10 8v2h20v-2c0-5-4-8-10-8z" fill="white" opacity=".9"/><path d="M18 10l12 8M30 10l-12 8" stroke="white" stroke-width="2" stroke-linecap="round" class="anim-shake"/></svg>
+              <span class="text-2xl md:text-3xl font-extrabold tracking-wide">HAYIR</span>
+              <span class="text-xs opacity-80">Başını sağa-sola salla</span>
+            </div>
+          </button>
+        </div>
+        <div id="ynFeedback" class="mt-6 text-center hidden">
+          <div id="ynFeedbackInner" class="inline-block px-6 py-4 rounded-3xl text-lg font-semibold"></div>
+        </div>
+      </section>
+
+      <!-- SES & HECE -->
+      <section id="sec-phoneme" class="section">
+        <button onclick="App.navigate('home')" class="flex items-center gap-2 text-sage font-medium mb-4 touch-target">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Geri
+        </button>
+        <div class="flex gap-2 mb-5 overflow-x-auto pb-1">
+          <button onclick="Phoneme.setCategory('vowel')" id="phCat-vowel" class="ph-cat px-4 py-2 rounded-2xl bg-sage text-white text-sm font-medium whitespace-nowrap">Sesli Harfler</button>
+          <button onclick="Phoneme.setCategory('lip')" id="phCat-lip" class="ph-cat px-4 py-2 rounded-2xl bg-white text-stone-muted text-sm font-medium whitespace-nowrap shadow-card">Dudak Sesleri</button>
+        </div>
+        <div class="bg-white rounded-3xl shadow-sage p-6 md:p-8 text-center border border-sage/5">
+          <div id="phSymbol" class="text-7xl md:text-9xl font-extrabold text-sage mb-4 tracking-wider"></div>
+          <p id="phGuide" class="text-lg md:text-xl text-stone-muted mb-2"></p>
+          <p id="phMouth" class="text-sm text-peach-accent font-medium bg-peach-bg inline-block px-4 py-2 rounded-2xl mb-6"></p>
+          <div class="flex flex-wrap justify-center gap-3 mb-6">
+            <button onclick="Phoneme.speak()" class="flex items-center gap-2 px-6 py-3 rounded-2xl bg-sage text-white font-semibold shadow-sage active:scale-95 transition-transform">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+              Dinle
+            </button>
+            <button id="phMicBtn" onclick="Phoneme.toggleMic()" class="flex items-center gap-2 px-6 py-3 rounded-2xl bg-peach-bg text-peach-accent font-semibold shadow-card active:scale-95 transition-transform">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+              <span id="phMicLabel">Sesini Dene</span>
+            </button>
+          </div>
+          <div id="phResult" class="hidden p-4 rounded-2xl text-base font-medium"></div>
+          <div class="flex justify-between mt-4">
+            <button onclick="Phoneme.prev()" class="px-5 py-3 rounded-2xl bg-sage-light text-sage font-medium shadow-card">← Önceki</button>
+            <button onclick="Phoneme.next()" class="px-5 py-3 rounded-2xl bg-sage-light text-sage font-medium shadow-card">Sonraki →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- KELİME BULMA -->
+      <section id="sec-wordfind" class="section">
+        <button onclick="App.navigate('home')" class="flex items-center gap-2 text-sage font-medium mb-4 touch-target">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Geri
+        </button>
+        <h2 class="text-xl font-bold text-stone mb-4">Günlük Yaşam Temaları</h2>
+        <div id="themeGrid" class="grid grid-cols-2 gap-3 mb-6"></div>
+        <div id="wordArea" class="hidden">
+          <div class="flex items-center justify-between mb-4">
+            <span id="wfProgress" class="text-xs font-semibold text-sage bg-sage-light px-3 py-1 rounded-full"></span>
+            <button onclick="WordFind.speakClue()" class="p-2 rounded-xl bg-therapy-bg text-therapy-accent shadow-card" aria-label="İpucu dinle">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+            </button>
+          </div>
+          <div class="bg-white rounded-3xl shadow-sage p-5 md:p-6 border border-sage/5 mb-4">
+            <p id="wfQuestion" class="text-lg font-semibold text-stone mb-4"></p>
+            <div id="wfImage" class="w-32 h-32 mx-auto rounded-2xl bg-sage-light flex items-center justify-center mb-4"></div>
+            <div id="cueAccordions" class="space-y-2 mb-4"></div>
+            <div class="flex flex-col gap-3">
+              <div class="flex gap-2">
+                <input id="wfInput" type="text" placeholder="Kelimeyi yazın veya söyleyin..." class="flex-1 px-4 py-3 rounded-2xl border border-sage/15 bg-cream text-stone text-base focus:outline-none focus:ring-2 focus:ring-sage/30" autocomplete="off">
+                <button onclick="WordFind.checkAnswer()" class="px-5 py-3 rounded-2xl bg-sage text-white font-semibold shadow-sage shrink-0">Kontrol</button>
+              </div>
+              <button id="wfMicBtn" onclick="WordFind.toggleMic()" class="flex items-center justify-center gap-2 py-3 rounded-2xl bg-therapy-bg text-therapy-accent font-medium shadow-card">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+                Mikrofon ile Söyle
+              </button>
+              <button onclick="WordFind.revealWord()" class="py-4 rounded-2xl bg-peach-bg text-peach-accent font-bold text-lg shadow-card border border-peach-accent/10">
+                Kelimeyi Hatırlayamadım
+              </button>
+            </div>
+            <div id="wfFeedback" class="mt-4 hidden p-4 rounded-2xl text-center font-semibold"></div>
+            <div id="wfReveal" class="mt-4 hidden text-center">
+              <p class="text-5xl md:text-6xl font-extrabold text-sage tracking-widest" id="wfSyllables"></p>
+              <p class="text-sm text-stone-muted mt-2">Kelimeyi yavaşça tekrar edin</p>
+              <button onclick="WordFind.speakWord()" class="mt-3 px-6 py-3 rounded-2xl bg-sage text-white font-semibold">Kelimeyi Dinle</button>
+            </div>
+          </div>
+          <button onclick="WordFind.nextWord()" class="w-full py-3 rounded-2xl bg-sage-light text-sage font-semibold shadow-card">Sonraki Kelime →</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- ALT NAV -->
+    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-sage/10 shadow-sage safe-bottom safe-x">
+      <div class="max-w-4xl mx-auto flex justify-around py-2 px-2">
+        <button onclick="App.navigate('home')" data-nav="home" class="nav-btn flex flex-col items-center gap-1 px-4 py-2 rounded-2xl text-stone-muted text-xs font-medium transition-colors">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Ana Sayfa
+        </button>
+        <button onclick="App.navigate('yesno')" data-nav="yesno" class="nav-btn flex flex-col items-center gap-1 px-4 py-2 rounded-2xl text-stone-muted text-xs font-medium transition-colors">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Evet/Hayır
+        </button>
+        <button onclick="App.navigate('phoneme')" data-nav="phoneme" class="nav-btn flex flex-col items-center gap-1 px-4 py-2 rounded-2xl text-stone-muted text-xs font-medium transition-colors">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/></svg>
+          Ses/Hece
+        </button>
+        <button onclick="App.navigate('wordfind')" data-nav="wordfind" class="nav-btn flex flex-col items-center gap-1 px-4 py-2 rounded-2xl text-stone-muted text-xs font-medium transition-colors">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Kelime
+        </button>
+      </div>
+    </nav>
+
+    <!-- AYARLAR MODAL -->
+    <div id="settingsModal" class="fixed inset-0 z-[100] hidden">
+      <div class="absolute inset-0 bg-stone/40 backdrop-blur-sm" onclick="App.closeSettings()"></div>
+      <div class="absolute bottom-0 left-0 right-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-md md:w-full md:rounded-3xl bg-white rounded-t-3xl shadow-lift safe-bottom safe-x p-6 max-h-[85vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-xl font-bold text-stone">Ayarlar</h3>
+          <button onclick="App.closeSettings()" class="w-10 h-10 rounded-2xl bg-sage-light flex items-center justify-center">
+            <svg class="w-5 h-5 text-stone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <label class="block text-sm font-medium text-stone mb-2">Google Gemini API Anahtarı</label>
+        <input id="apiKeyInput" type="password" placeholder="AIza..." class="w-full px-4 py-3 rounded-2xl border border-sage/15 bg-cream text-stone mb-2 focus:outline-none focus:ring-2 focus:ring-sage/30">
+        <p class="text-xs text-stone-muted mb-4">Boş bırakılırsa yerel demo veritabanı kullanılır. Model: gemini-2.5-flash-preview-09-2025</p>
+        <button onclick="App.saveSettings()" class="w-full py-3 rounded-2xl bg-sage text-white font-semibold shadow-sage mb-3">Kaydet</button>
+        <button onclick="App.testGemini()" class="w-full py-3 rounded-2xl bg-therapy-bg text-therapy-accent font-semibold shadow-card">Bağlantıyı Test Et</button>
+        <p id="settingsMsg" class="mt-3 text-sm text-center hidden"></p>
+      </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-[110] hidden px-5 py-3 rounded-2xl bg-sage text-white text-sm font-medium shadow-lift max-w-[90vw] text-center"></div>
+  </div>
+  <script>
+  /* ========== DEMO VERİTABANI ========== */
+  const DEMO = {
+    yesNo: [
+      { q: 'Bu bir kaşık mı?', answer: true, svg: '<svg viewBox="0 0 80 80" class="w-28 h-28"><ellipse cx="40" cy="55" rx="28" ry="12" fill="#2e5a4e" opacity=".15"/><path d="M25 20 Q40 5 55 20 L50 50 Q40 58 30 50 Z" fill="#2e5a4e"/><rect x="38" y="50" width="4" height="25" rx="2" fill="#5c5854"/></svg>' },
+      { q: 'Bu bir elma mı?', answer: true, svg: '<svg viewBox="0 0 80 80" class="w-28 h-28"><circle cx="40" cy="45" r="25" fill="#c2410c"/><path d="M40 20 Q42 10 48 12" stroke="#2e5a4e" stroke-width="2" fill="none"/><ellipse cx="35" cy="38" rx="5" ry="8" fill="#fde8d8" opacity=".4"/></svg>' },
+      { q: 'Bu bir araba mı?', answer: true, svg: '<svg viewBox="0 0 80 80" class="w-28 h-28"><rect x="10" y="35" width="60" height="20" rx="5" fill="#1e40af"/><rect x="20" y="25" width="35" height="15" rx="3" fill="#eef2ff"/><circle cx="22" cy="55" r="8" fill="#272522"/><circle cx="58" cy="55" r="8" fill="#272522"/></svg>' },
+      { q: 'Bu bir kedi mı?', answer: false, svg: '<svg viewBox="0 0 80 80" class="w-28 h-28"><ellipse cx="40" cy="50" rx="22" ry="18" fill="#5c5854"/><polygon points="20,30 28,42 15,42" fill="#5c5854"/><polygon points="60,30 52,42 65,42" fill="#5c5854"/><circle cx="32" cy="48" r="3" fill="#272522"/><circle cx="48" cy="48" r="3" fill="#272522"/></svg>', note: 'Bu bir köpek' },
+      { q: 'Bu bir bardak mı?', answer: true, svg: '<svg viewBox="0 0 80 80" class="w-28 h-28"><path d="M25 20 L30 60 Q40 65 50 60 L55 20 Z" fill="#eef2ff" stroke="#1e40af" stroke-width="2"/><ellipse cx="40" cy="20" rx="15" ry="4" fill="#1e40af" opacity=".3"/></svg>' },
+      { q: 'Bu bir telefon mu?', answer: true, svg: '<svg viewBox="0 0 80 80" class="w-28 h-28"><rect x="25" y="10" width="30" height="55" rx="5" fill="#272522"/><rect x="28" y="15" width="24" height="40" rx="2" fill="#eef2ff"/><circle cx="40" cy="60" r="3" fill="#5c5854"/></svg>' },
+      { q: 'Bu bir çiçek mi?', answer: false, svg: '<svg viewBox="0 0 80 80" class="w-28 h-28"><rect x="35" y="30" width="10" height="40" fill="#2e5a4e"/><ellipse cx="40" cy="25" rx="20" ry="8" fill="#5c5854"/></svg>', note: 'Bu bir ağaç' },
+      { q: 'Bu bir anahtar mı?', answer: true, svg: '<svg viewBox="0 0 80 80" class="w-28 h-28"><circle cx="28" cy="40" r="12" fill="none" stroke="#c2410c" stroke-width="4"/><rect x="38" y="37" width="30" height="6" rx="2" fill="#c2410c"/><rect x="58" y="32" width="5" height="8" rx="1" fill="#c2410c"/><rect x="52" y="40" width="5" height="8" rx="1" fill="#c2410c"/></svg>' }
+    ],
+    phonemes: {
+      vowel: [
+        { s: 'A', guide: 'A sesi — ağzını geniş aç', mouth: 'Ağzını geniş aç, dilini alçalt' },
+        { s: 'O', guide: 'O sesi — dudakları yuvarla', mouth: 'Dudaklarını yuvarlak yap, ses çıkar' },
+        { s: 'E', guide: 'E sesi — gülümse', mouth: 'Hafif gülümse, dişlerini göster' },
+        { s: 'I', guide: 'I sesi — dudakları ger', mouth: 'Dudaklarını hafif ger, ses çıkar' },
+        { s: 'U', guide: 'U sesi — dudakları ileri uzat', mouth: 'Dudaklarını öne uzat ve yuvarla' }
+      ],
+      lip: [
+        { s: 'MA', guide: 'MA — dudak sesi', mouth: 'Dudakları birleştir ve bırak: M... ardından A' },
+        { s: 'BA', guide: 'BA — dudak sesi', mouth: 'Dudakları birleştir ve patlat: B... ardından A' },
+        { s: 'PA', guide: 'PA — dudak sesi', mouth: 'Dudakları birleştir, hafif üfle: P... ardından A' },
+        { s: 'MO', guide: 'MO — dudak + yuvarlak ses', mouth: 'Dudakları birleştir, O sesiyle birleştir' },
+        { s: 'BO', guide: 'BO — dudak + yuvarlak ses', mouth: 'Dudakları patlat, O sesi ekle' }
+      ]
+    },
+    themes: {
+      mutfak: {
+        name: 'Mutfak', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-8 h-8"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>',
+        words: [
+          { word: 'kaşık', syllables: 'KA - ŞIK', q: 'Yemek yerken çorba içmek için kullandığımız mutfak gereci nedir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><path d="M18 8 Q30 2 42 8 L38 35 Q30 40 22 35 Z" fill="#2e5a4e"/><rect x="28" y="35" width="4" height="20" fill="#5c5854"/></svg>',
+            cues: ['Yemek yerken çorbamızı içmek için kullandığımız mutfak gerecidir.', 'K... sesi ile başlar, iki hecelidir.', 'Yemek soğuyunca elime hemen porselen bir ... aldım.'] },
+          { word: 'tabak', syllables: 'TA - BAK', q: 'Yemeği koyduğumuz yuvarlak mutfak eşyası nedir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><ellipse cx="30" cy="32" rx="24" ry="10" fill="#eef2ff" stroke="#1e40af" stroke-width="2"/><ellipse cx="30" cy="30" rx="20" ry="7" fill="#1e40af" opacity=".1"/></svg>',
+            cues: ['Yemekleri üzerine koyduğumuz yuvarlak mutfak eşyasıdır.', 'T... ile başlar, iki hecelidir.', 'Akşam yemeğinde tencereden bir ... doldurdum.'] },
+          { word: 'bıçak', syllables: 'BI - ÇAK', q: 'Sebzeleri kesmek için kullandığımız alet nedir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><rect x="28" y="5" width="4" height="35" fill="#5c5854"/><polygon points="30,40 22,55 38,55" fill="#272522"/></svg>',
+            cues: ['Sebze ve et kesmek için kullanılan keskin mutfak aletidir.', 'B... ile başlar, iki hecelidir.', 'Domatesi doğramak için ... aldım.'] },
+          { word: 'tencere', syllables: 'TEN - CE - RE', q: 'Yemek pişirdiğimiz kapalı mutfak gereci nedir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><ellipse cx="30" cy="38" rx="22" ry="12" fill="#c2410c" opacity=".2"/><rect x="12" y="25" width="36" height="20" rx="3" fill="#c2410c"/><path d="M12 25 Q30 15 48 25" fill="none" stroke="#c2410c" stroke-width="3"/></svg>',
+            cues: ['Ocakta yemek pişirmek için kullanılan derin mutfak kabıdır.', 'T... ile başlar, üç hecelidir.', 'Çorbayı ... de kaynatıyorum.'] }
+        ]
+      },
+      banyo: {
+        name: 'Banyo', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-8 h-8"><path d="M4 12h16a1 1 0 0 1 1 1v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3a1 1 0 0 1 1-1z"/><path d="M6 12V5a2 2 0 0 1 2-2h3"/><path d="M6 20v2"/><path d="M18 20v2"/></svg>',
+        words: [
+          { word: 'sabun', syllables: 'SA - BUN', q: 'Ellerimizi yıkamak için kullandığımız köpüklü madde nedir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><rect x="15" y="20" width="30" height="25" rx="5" fill="#ebf4f1" stroke="#2e5a4e" stroke-width="2"/><circle cx="22" cy="28" r="3" fill="#2e5a4e" opacity=".3"/><circle cx="35" cy="32" r="4" fill="#2e5a4e" opacity=".2"/></svg>',
+            cues: ['Elleri temizlemek için kullanılan köpüklü temizlik maddesidir.', 'S... ile başlar, iki hecelidir.', 'Banyoda ... ile yıkandım.'] },
+          { word: 'havlu', syllables: 'HAV - LU', q: 'Duştan sonra kurulanmak için kullandığımız yumuşak kumaş nedir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><rect x="10" y="15" width="40" height="30" rx="4" fill="#fdf4ec" stroke="#c2410c" stroke-width="2"/><path d="M15 25 H45 M15 32 H45 M15 39 H45" stroke="#c2410c" stroke-width="1" opacity=".4"/></svg>',
+            cues: ['Islak vücudu kurulamak için kullanılan yumuşak kumaştır.', 'H... ile başlar, iki hecelidir.', 'Duştan sonra ... ile kurulandım.'] },
+          { word: 'diş fırçası', syllables: 'DIŞ FIR - ÇA - SI', q: 'Dişlerimizi fırçalamak için kullandığımız alet nedir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><rect x="26" y="10" width="8" height="30" rx="3" fill="#1e40af"/><rect x="22" y="38" width="16" height="12" rx="2" fill="#eef2ff" stroke="#1e40af"/><line x1="24" y1="42" x2="24" y2="48" stroke="#1e40af" stroke-width="1"/><line x1="28" y1="42" x2="28" y2="48" stroke="#1e40af" stroke-width="1"/><line x1="32" y1="42" x2="32" y2="48" stroke="#1e40af" stroke-width="1"/><line x1="36" y1="42" x2="36" y2="48" stroke="#1e40af" stroke-width="1"/></svg>',
+            cues: ['Dişleri temizlemek için kullanılan fırçalı alettir.', 'D... ile başlar.', 'Her sabah ... ile dişlerimi fırçalarım.'] },
+          { word: 'duş', syllables: 'DUŞ', q: 'Banyoda su ile yıkandığımız yer nedir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><path d="M20 10 Q30 5 40 10 L38 25 Q30 30 22 25 Z" fill="#1e40af" opacity=".3"/><line x1="30" y1="25" x2="30" y2="50" stroke="#1e40af" stroke-width="2"/><line x1="25" y1="35" x2="20" y2="45" stroke="#1e40af" stroke-width="1.5"/><line x1="35" y1="35" x2="40" y2="45" stroke="#1e40af" stroke-width="1.5"/></svg>',
+            cues: ['Banyoda ayakta su ile yıkanılan bölümdür.', 'D... ile başlar, tek hecelidir.', 'Sabah ... aldım.'] }
+        ]
+      },
+      saglik: {
+        name: 'Sağlık', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-8 h-8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
+        words: [
+          { word: 'doktor', syllables: 'DOK - TOR', q: 'Hastalıklarımızı tedavi eden sağlık çalışanı kimdir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><circle cx="30" cy="18" r="10" fill="#ebf4f1" stroke="#2e5a4e" stroke-width="2"/><path d="M15 50 Q30 35 45 50" fill="#2e5a4e" opacity=".2"/><rect x="26" y="38" width="8" height="12" fill="#2e5a4e"/><line x1="30" y1="42" x2="30" y2="48" stroke="white" stroke-width="2"/><line x1="27" y1="45" x2="33" y2="45" stroke="white" stroke-width="2"/></svg>',
+            cues: ['Hastaları muayene edip tedavi eden sağlık profesyonelidir.', 'D... ile başlar, iki hecelidir.', 'Ateşim olunca ... a gittim.'] },
+          { word: 'ilaç', syllables: 'I - LAÇ', q: 'Hastalığımızı iyileştirmek için içtiğimiz madde nedir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><rect x="22" y="15" width="16" height="30" rx="8" fill="#eef2ff" stroke="#1e40af" stroke-width="2"/><rect x="26" y="10" width="8" height="8" rx="2" fill="#1e40af"/></svg>',
+            cues: ['Hastalıkları tedavi etmek için kullanılan maddedir.', 'İ... ile başlar, iki hecelidir.', 'Başım ağrıyınca ... içtim.'] },
+          { word: 'hemşire', syllables: 'HEM - ŞI - RE', q: 'Hastanede doktora yardım eden sağlık çalışanı kimdir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><circle cx="30" cy="18" r="10" fill="#fdf4ec" stroke="#c2410c" stroke-width="2"/><path d="M15 50 Q30 35 45 50" fill="#c2410c" opacity=".15"/><path d="M22 15 L30 22 L38 15" fill="none" stroke="#c2410c" stroke-width="2"/></svg>',
+            cues: ['Hastanede hastalara bakım veren sağlık çalışanıdır.', 'H... ile başlar, üç hecelidir.', '... iğnemi yaptı.'] },
+          { word: 'termometre', syllables: 'TER - MO - MET - RE', q: 'Ateşimizi ölçmek için kullandığımız alet nedir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><rect x="27" y="8" width="6" height="35" rx="3" fill="#ebf4f1" stroke="#2e5a4e"/><circle cx="30" cy="48" r="8" fill="#c2410c" opacity=".3"/></svg>',
+            cues: ['Vücut ısısını ölçmek için kullanılan sağlık aletidir.', 'T... ile başlar, dört hecelidir.', 'Ateşimi ... ile ölçtüm.'] }
+        ]
+      },
+      sosyal: {
+        name: 'Sosyal', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-8 h-8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        words: [
+          { word: 'arkadaş', syllables: 'AR - KA - DAŞ', q: 'Birlikte vakit geçirdiğimiz yakın kişi kimdir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><circle cx="22" cy="20" r="8" fill="#ebf4f1" stroke="#2e5a4e"/><circle cx="38" cy="20" r="8" fill="#eef2ff" stroke="#1e40af"/><path d="M10 48 Q22 38 34 48" fill="#2e5a4e" opacity=".15"/><path d="M26 48 Q38 38 50 48" fill="#1e40af" opacity=".15"/></svg>',
+            cues: ['Birlikte zaman geçirdiğimiz sevdiğimiz kişidir.', 'A... ile başlar, üç hecelidir.', 'En iyi ... ım Ali.'] },
+          { word: 'aile', syllables: 'A - İ - LE', q: 'Anne, baba ve kardeşlerden oluşan yakın grubumuz nedir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><circle cx="20" cy="18" r="7" fill="#fdf4ec" stroke="#c2410c"/><circle cx="40" cy="18" r="7" fill="#ebf4f1" stroke="#2e5a4e"/><circle cx="30" cy="35" r="5" fill="#eef2ff" stroke="#1e40af"/><path d="M10 50 Q20 40 30 50 Q40 40 50 50" fill="none" stroke="#272522" stroke-width="1.5" opacity=".3"/></svg>',
+            cues: ['Anne, baba ve kardeşlerden oluşan en yakın grubumuzdur.', 'A... ile başlar, üç hecelidir.', '... mle akşam yemeği yedik.'] },
+          { word: 'telefon', syllables: 'TE - LE - FON', q: 'Uzaktaki insanlarla konuşmak için kullandığımız cihaz nedir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><rect x="18" y="8" width="24" height="44" rx="4" fill="#272522"/><rect x="21" y="12" width="18" height="32" rx="2" fill="#eef2ff"/><circle cx="30" cy="48" r="2" fill="#5c5854"/></svg>',
+            cues: ['İnsanlarla uzaktan konuşmamızı sağlayan cihazdır.', 'T... ile başlar, üç hecelidir.', 'Annemi ... dan aradım.'] },
+          { word: 'merhaba', syllables: 'MER - HA - BA', q: 'Birini selamlarken söylediğimiz kelime nedir?',
+            svg: '<svg viewBox="0 0 60 60" class="w-20 h-20"><path d="M15 35 Q30 15 45 35" fill="none" stroke="#2e5a4e" stroke-width="3"/><circle cx="22" cy="30" r="3" fill="#2e5a4e"/><circle cx="38" cy="30" r="3" fill="#2e5a4e"/></svg>',
+            cues: ['İnsanları karşılarken söylediğimiz selamlama kelimesidir.', 'M... ile başlar, üç hecelidir.', 'Kapıda ... dedim.'] }
+        ]
+      }
+    }
+  };
+
+  /* ========== SES MOTORU (TTS/STT) ========== */
+  const Speech = {
+    synth: window.speechSynthesis,
+    recognition: null,
+    unlocked: false,
+    listening: false,
+    onResult: null,
+
+    init() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SR) {
+        this.recognition = new SR();
+        this.recognition.lang = 'tr-TR';
+        this.recognition.continuous = false;
+        this.recognition.interimResults = true;
+        this.recognition.onresult = (e) => {
+          let txt = '';
+          for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
+          if (this.onResult) this.onResult(txt.trim(), e.results[e.results.length - 1].isFinal);
+        };
+        this.recognition.onend = () => { this.listening = false; };
+        this.recognition.onerror = () => { this.listening = false; };
+      }
+      document.body.addEventListener('touchstart', () => this.unlock(), { once: false, passive: true });
+      document.body.addEventListener('click', () => this.unlock(), { once: false });
+    },
+
+    unlock() {
+      if (this.unlocked) return;
+      this.unlocked = true;
+      const u = new SpeechSynthesisUtterance('');
+      u.volume = 0;
+      this.synth.speak(u);
+      this.synth.cancel();
+    },
+
+    getTurkishVoice() {
+      const voices = this.synth.getVoices();
+      return voices.find(v => v.lang.startsWith('tr')) || voices.find(v => v.lang.startsWith('tr-TR')) || voices[0];
+    },
+
+    speak(text, rate = 0.7) {
+      return new Promise((resolve) => {
+        this.unlock();
+        this.synth.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'tr-TR';
+        u.rate = rate;
+        u.pitch = 1;
+        u.volume = 1;
+        const v = this.getTurkishVoice();
+        if (v) u.voice = v;
+        u.onend = () => resolve();
+        u.onerror = () => resolve();
+        this.synth.speak(u);
+      });
+    },
+
+    startListening(callback) {
+      if (!this.recognition) { App.toast('Tarayıcınız konuşma tanımayı desteklemiyor.'); return false; }
+      this.unlock();
+      this.onResult = callback;
+      this.listening = true;
+      try { this.recognition.start(); } catch (e) { this.recognition.stop(); setTimeout(() => this.recognition.start(), 200); }
+      return true;
+    },
+
+    stopListening() {
+      if (this.recognition && this.listening) { try { this.recognition.stop(); } catch (e) {} }
+      this.listening = false;
+      this.onResult = null;
+    },
+
+    normalize(s) {
+      return s.toLowerCase().replace(/ı/g,'i').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ö/g,'o').replace(/ç/g,'c').trim();
+    },
+
+    hasSound(text) {
+      const t = text.replace(/\s/g, '');
+      return t.length >= 1;
+    },
+
+    matchesTarget(spoken, target) {
+      const s = this.normalize(spoken);
+      const t = this.normalize(target);
+      if (!s) return false;
+      if (s.includes(t) || t.includes(s)) return true;
+      if (t.length <= 3 && s.length >= 1) return true;
+      const parts = t.split(/\s+/);
+      return parts.some(p => s.includes(p) || (p.length <= 2 && s.length >= 1));
+    }
+  };
+
+  /* ========== GEMINI API ========== */
+  const Gemini = {
+    model: 'gemini-2.5-flash-preview-09-2025',
+    key: localStorage.getItem('aphasia_gemini_key') || '',
+
+    async call(prompt) {
+      if (!this.key) return null;
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.key}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        if (!res.ok) throw new Error('API hatası');
+        const data = await res.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+      } catch (e) { return null; }
+    },
+
+    async testConnection() {
+      const r = await this.call('Merhaba, tek kelimeyle yanıt ver: tamam');
+      return r !== null;
+    },
+
+    async enhanceWordClue(word, theme) {
+      const r = await this.call(`Afazi terapisi için "${word}" kelimesi (${theme} teması) hakkında kısa semantik ipucu yaz. Türkçe, bir cümle.`);
+      return r;
+    }
+  };
+
+  /* ========== ANA UYGULAMA ========== */
+  const App = {
+    section: 'home',
+
+    init() {
+      Speech.init();
+      if (Gemini.key) document.getElementById('apiKeyInput').value = Gemini.key;
+      this.updateStatus();
+      this.renderThemes();
+      YesNo.init();
+      Phoneme.init();
+      document.getElementById('btnSettings').onclick = () => this.openSettings();
+      if (window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = () => {};
+        setTimeout(() => window.speechSynthesis.getVoices(), 100);
+      }
+    },
+
+    navigate(id) {
+      this.section = id;
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById('sec-' + id).classList.add('active');
+      document.querySelectorAll('.nav-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.nav === id);
+      });
+      if (id === 'yesno') YesNo.render();
+      if (id === 'phoneme') Phoneme.render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
+    openSettings() { document.getElementById('settingsModal').classList.remove('hidden'); },
+    closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); },
+
+    saveSettings() {
+      Gemini.key = document.getElementById('apiKeyInput').value.trim();
+      localStorage.setItem('aphasia_gemini_key', Gemini.key);
+      this.updateStatus();
+      this.showSettingsMsg('Ayarlar kaydedildi.', 'text-sage');
+      App.toast('Ayarlar kaydedildi');
+    },
+
+    async testGemini() {
+      Gemini.key = document.getElementById('apiKeyInput').value.trim();
+      if (!Gemini.key) { this.showSettingsMsg('Lütfen API anahtarı girin.', 'text-peach-accent'); return; }
+      this.showSettingsMsg('Test ediliyor...', 'text-stone-muted');
+      const ok = await Gemini.testConnection();
+      this.showSettingsMsg(ok ? 'Bağlantı başarılı!' : 'Bağlantı başarısız. Demo moda dönülecek.', ok ? 'text-sage' : 'text-peach-accent');
+    },
+
+    showSettingsMsg(msg, cls) {
+      const el = document.getElementById('settingsMsg');
+      el.textContent = msg;
+      el.className = 'mt-3 text-sm text-center ' + cls;
+      el.classList.remove('hidden');
+    },
+
+    updateStatus() {
+      const dot = document.getElementById('statusDot');
+      const txt = document.getElementById('statusText');
+      if (Gemini.key) {
+        dot.className = 'w-3 h-3 rounded-full bg-therapy-accent shrink-0';
+        txt.textContent = 'Gemini AI bağlantısı yapılandırıldı. Hata durumunda demo moda dönülür.';
+      } else {
+        dot.className = 'w-3 h-3 rounded-full bg-sage shrink-0';
+        txt.textContent = 'Demo modu aktif — Ayarlardan Gemini API anahtarı ekleyebilirsiniz.';
+      }
+    },
+
+    renderThemes() {
+      const grid = document.getElementById('themeGrid');
+      grid.innerHTML = Object.entries(DEMO.themes).map(([id, t]) => `
+        <button onclick="WordFind.selectTheme('${id}')" class="p-5 rounded-3xl bg-white shadow-sage border border-sage/5 flex flex-col items-center gap-3 hover:shadow-lift transition-all active:scale-[.98]">
+          <div class="w-14 h-14 rounded-2xl bg-sage-light flex items-center justify-center text-sage">${t.icon}</div>
+          <span class="font-bold text-stone">${t.name}</span>
+        </button>
+      `).join('');
+    },
+
+    toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2800);
+    }
+  };
+
+  /* ========== EVET/HAYIR MODÜLÜ ========== */
+  const YesNo = {
+    idx: 0,
+    items: [],
+
+    init() { this.items = DEMO.yesNo; },
+
+    render() {
+      const item = this.items[this.idx];
+      document.getElementById('ynProgress').textContent = `Soru ${this.idx + 1} / ${this.items.length}`;
+      document.getElementById('ynImage').innerHTML = item.svg;
+      document.getElementById('ynQuestion').textContent = item.q;
+      document.getElementById('ynFeedback').classList.add('hidden');
+      setTimeout(() => this.speakQuestion(), 400);
+    },
+
+    speakQuestion() { Speech.speak(this.items[this.idx].q, 0.75); },
+
+    answer(yes) {
+      const item = this.items[this.idx];
+      const correct = yes === item.answer;
+      const fb = document.getElementById('ynFeedback');
+      const inner = document.getElementById('ynFeedbackInner');
+      fb.classList.remove('hidden');
+      if (correct) {
+        inner.className = 'inline-block px-6 py-4 rounded-3xl text-lg font-semibold bg-green-50 text-green-700';
+        inner.textContent = 'Harika! Doğru cevap!';
+        Speech.speak('Harika, doğru cevap!', 0.8);
+      } else {
+        inner.className = 'inline-block px-6 py-4 rounded-3xl text-lg font-semibold bg-peach-bg text-peach-accent';
+        inner.textContent = item.note ? `Tekrar deneyelim. ${item.note}.` : 'Tekrar deneyelim, olabilir.';
+        Speech.speak('Tekrar deneyelim.', 0.8);
+      }
+      setTimeout(() => {
+        this.idx = (this.idx + 1) % this.items.length;
+        this.render();
+      }, 2200);
+    }
+  };
+
+  /* ========== SES & HECE MODÜLÜ ========== */
+  const Phoneme = {
+    category: 'vowel',
+    idx: 0,
+    micActive: false,
+
+    init() { this.render(); },
+
+    getItems() { return DEMO.phonemes[this.category]; },
+
+    setCategory(cat) {
+      this.category = cat;
+      this.idx = 0;
+      document.querySelectorAll('.ph-cat').forEach(b => {
+        b.className = 'ph-cat px-4 py-2 rounded-2xl text-sm font-medium whitespace-nowrap shadow-card ' +
+          (b.id === 'phCat-' + cat ? 'bg-sage text-white' : 'bg-white text-stone-muted');
+      });
+      this.render();
+    },
+
+    render() {
+      const item = this.getItems()[this.idx];
+      document.getElementById('phSymbol').textContent = item.s;
+      document.getElementById('phGuide').textContent = item.guide;
+      document.getElementById('phMouth').textContent = item.mouth;
+      document.getElementById('phResult').classList.add('hidden');
+      const micBtn = document.getElementById('phMicBtn');
+      micBtn.classList.remove('anim-mic');
+      document.getElementById('phMicLabel').textContent = 'Sesini Dene';
+    },
+
+    speak() { Speech.speak(this.getItems()[this.idx].s, 0.55); },
+
+    toggleMic() {
+      if (this.micActive) { this.stopMic(); return; }
+      this.micActive = true;
+      const btn = document.getElementById('phMicBtn');
+      btn.classList.add('anim-mic');
+      document.getElementById('phMicLabel').textContent = 'Dinleniyor...';
+      const target = this.getItems()[this.idx].s;
+      Speech.startListening((text, isFinal) => {
+        if (!text && !isFinal) return;
+        const result = document.getElementById('phResult');
+        result.classList.remove('hidden');
+        const hasAny = Speech.hasSound(text);
+        const match = Speech.matchesTarget(text, target);
+        if (hasAny || match) {
+          result.className = 'p-4 rounded-2xl text-base font-medium bg-green-50 text-green-700';
+          result.textContent = 'Mükemmel! Ses çıkardınız! Tebrikler!';
+          Speech.speak('Harika, ses çıkardınız!', 0.8);
+          if (isFinal) setTimeout(() => this.stopMic(), 800);
+        } else if (isFinal) {
+          result.className = 'p-4 rounded-2xl text-base font-medium bg-peach-bg text-peach-accent';
+          result.textContent = 'Tekrar deneyin. En ufak bir ses bile yeterli!';
+          Speech.speak('Tekrar deneyin, ses çıkarmaya çalışın.', 0.75);
+        }
+      });
+      setTimeout(() => { if (this.micActive) this.stopMic(); }, 8000);
+    },
+
+    stopMic() {
+      this.micActive = false;
+      Speech.stopListening();
+      document.getElementById('phMicBtn').classList.remove('anim-mic');
+      document.getElementById('phMicLabel').textContent = 'Sesini Dene';
+    },
+
+    next() { this.idx = (this.idx + 1) % this.getItems().length; this.render(); },
+    prev() { this.idx = (this.idx - 1 + this.getItems().length) % this.getItems().length; this.render(); }
+  };
+
+  /* ========== KELİME BULMA MODÜLÜ ========== */
+  const WordFind = {
+    themeId: null,
+    wordIdx: 0,
+    micActive: false,
+    revealed: false,
+
+    selectTheme(id) {
+      this.themeId = id;
+      this.wordIdx = 0;
+      this.revealed = false;
+      document.getElementById('wordArea').classList.remove('hidden');
+      this.renderWord();
+    },
+
+    getWords() { return DEMO.themes[this.themeId].words; },
+    getCurrent() { return this.getWords()[this.wordIdx]; },
+
+    async renderWord() {
+      const w = this.getCurrent();
+      const theme = DEMO.themes[this.themeId];
+      document.getElementById('wfProgress').textContent = `${theme.name} — ${this.wordIdx + 1}/${this.getWords().length}`;
+      document.getElementById('wfQuestion').textContent = w.q;
+      document.getElementById('wfImage').innerHTML = w.svg;
+      document.getElementById('wfInput').value = '';
+      document.getElementById('wfFeedback').classList.add('hidden');
+      document.getElementById('wfReveal').classList.add('hidden');
+      this.revealed = false;
+
+      let cues = [...w.cues];
+      if (Gemini.key) {
+        const enhanced = await Gemini.enhanceWordClue(w.word, theme.name);
+        if (enhanced) cues[0] = enhanced.trim();
+      }
+
+      const labels = ['İpucu 1 — Semantik', 'İpucu 2 — Fonetik', 'İpucu 3 — Cümle Tamamlama'];
+      document.getElementById('cueAccordions').innerHTML = cues.map((c, i) => `
+        <div class="rounded-2xl border border-sage/10 overflow-hidden">
+          <button onclick="WordFind.toggleCue(${i})" class="w-full flex items-center justify-between px-4 py-3 bg-sage-light/50 text-left font-medium text-sm text-sage">
+            <span>${labels[i]}</span>
+            <svg id="cueIcon${i}" class="w-5 h-5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div id="cuePanel${i}" class="cue-panel px-4 bg-white">
+            <p class="py-3 text-stone-muted text-sm leading-relaxed">${c}</p>
+          </div>
+        </div>
+      `).join('');
+
+      setTimeout(() => Speech.speak(w.q, 0.75), 300);
+    },
+
+    toggleCue(i) {
+      const panel = document.getElementById('cuePanel' + i);
+      const icon = document.getElementById('cueIcon' + i);
+      const open = panel.classList.toggle('open');
+      icon.style.transform = open ? 'rotate(180deg)' : '';
+      if (open) Speech.speak(panel.querySelector('p').textContent, 0.75);
+    },
+
+    speakClue() { Speech.speak(this.getCurrent().q, 0.75); },
+
+    checkAnswer() {
+      const input = document.getElementById('wfInput').value;
+      this.showResult(input);
+    },
+
+    showResult(input) {
+      const w = this.getCurrent();
+      const correct = Speech.normalize(input) === Speech.normalize(w.word) ||
+        Speech.matchesTarget(input, w.word);
+      const fb = document.getElementById('wfFeedback');
+      fb.classList.remove('hidden');
+      if (correct) {
+        fb.className = 'mt-4 p-4 rounded-2xl text-center font-semibold bg-green-50 text-green-700';
+        fb.textContent = 'Doğru! Harika iş çıkardınız!';
+        Speech.speak('Doğru, harika!', 0.8);
+      } else {
+        fb.className = 'mt-4 p-4 rounded-2xl text-center font-semibold bg-peach-bg text-peach-accent';
+        fb.textContent = 'Henüz değil. İpuçlarına bakabilir veya tekrar deneyebilirsiniz.';
+      }
+    },
+
+    revealWord() {
+      const w = this.getCurrent();
+      this.revealed = true;
+      document.getElementById('wfReveal').classList.remove('hidden');
+      document.getElementById('wfSyllables').textContent = w.syllables;
+      document.getElementById('wfFeedback').classList.add('hidden');
+      this.speakWord();
+    },
+
+    speakWord() {
+      const w = this.getCurrent();
+      Speech.speak(w.word, 0.55);
+    },
+
+    toggleMic() {
+      if (this.micActive) { this.stopMic(); return; }
+      this.micActive = true;
+      document.getElementById('wfMicBtn').classList.add('anim-mic');
+      Speech.startListening((text, isFinal) => {
+        document.getElementById('wfInput').value = text;
+        if (isFinal) {
+          this.showResult(text);
+          this.stopMic();
+        }
+      });
+      setTimeout(() => { if (this.micActive) this.stopMic(); }, 10000);
+    },
+
+    stopMic() {
+      this.micActive = false;
+      Speech.stopListening();
+      document.getElementById('wfMicBtn').classList.remove('anim-mic');
+    },
+
+    nextWord() {
+      this.wordIdx = (this.wordIdx + 1) % this.getWords().length;
+      this.renderWord();
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', () => App.init());
+  </script>
+</body>
+</html>
